@@ -1,27 +1,28 @@
 ﻿using Common;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace ProcessingModule
 {
-    /// <summary>
-    /// Class containing logic for periodic polling.
-    /// </summary>
-    public class Acquisitor : IDisposable
+	/// <summary>
+	/// Class containing logic for periodic polling.
+	/// </summary>
+	public class Acquisitor : IDisposable
 	{
 		private AutoResetEvent acquisitionTrigger;
-        private IProcessingManager processingManager;
-        private Thread acquisitionWorker;
+		private IProcessingManager processingManager;
+		private Thread acquisitionWorker;
 		private IStateUpdater stateUpdater;
 		private IConfiguration configuration;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Acquisitor"/> class.
-        /// </summary>
-        /// <param name="acquisitionTrigger">The acquisition trigger.</param>
-        /// <param name="processingManager">The processing manager.</param>
-        /// <param name="stateUpdater">The state updater.</param>
-        /// <param name="configuration">The configuration.</param>
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Acquisitor"/> class.
+		/// </summary>
+		/// <param name="acquisitionTrigger">The acquisition trigger.</param>
+		/// <param name="processingManager">The processing manager.</param>
+		/// <param name="stateUpdater">The state updater.</param>
+		/// <param name="configuration">The configuration.</param>
 		public Acquisitor(AutoResetEvent acquisitionTrigger, IProcessingManager processingManager, IStateUpdater stateUpdater, IConfiguration configuration)
 		{
 			this.stateUpdater = stateUpdater;
@@ -34,37 +35,54 @@ namespace ProcessingModule
 
 		#region Private Methods
 
-        /// <summary>
-        /// Initializes the acquisition thread.
-        /// </summary>
+		/// <summary>
+		/// Initializes the acquisition thread.
+		/// </summary>
 		private void InitializeAcquisitionThread()
 		{
 			this.acquisitionWorker = new Thread(Acquisition_DoWork);
 			this.acquisitionWorker.Name = "Acquisition thread";
 		}
 
-        /// <summary>
-        /// Starts the acquisition thread.
-        /// </summary>
+		/// <summary>
+		/// Starts the acquisition thread.
+		/// </summary>
 		private void StartAcquisitionThread()
 		{
 			acquisitionWorker.Start();
 		}
 
-        /// <summary>
-        /// Acquisitor thread logic.
-        /// </summary>
+		/// <summary>
+		/// Acquisitor thread logic.
+		/// </summary>
 		private void Acquisition_DoWork()
 		{
-            //TO DO: IMPLEMENT
-        }
 
-        #endregion Private Methods
+			List<IConfigItem> config_items = configuration.GetConfigurationItems();
+			//hocemo da se akvizicija radi beskonacno
+			while (true)
+			{
+				acquisitionTrigger.WaitOne();
+				foreach (IConfigItem item in config_items)
+				{
+					item.SecondsPassedSinceLastPoll++;//polje koje je protwklo od predhodne akvizicije
+					if (item.SecondsPassedSinceLastPoll == item.AcquisitionInterval)
+					{//doslo je do vremena za akviziciju
+						processingManager.ExecuteReadCommand(item, this.configuration.GetTransactionId(),
+						this.configuration.UnitAddress, item.StartAddress, item.NumberOfRegisters);//okidac za citanje akvizicionih podataka
+						item.SecondsPassedSinceLastPoll = 0;
+					}
 
-        /// <inheritdoc />
-        public void Dispose()
+				}
+			}
+		}
+
+		#endregion Private Methods
+
+		/// <inheritdoc />
+		public void Dispose()
 		{
 			acquisitionWorker.Abort();
-        }
+		}
 	}
 }
