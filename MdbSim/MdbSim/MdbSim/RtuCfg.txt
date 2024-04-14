@@ -1,9 +1,8 @@
 STA 111
 TCP 55511
-
 IN_REG  1 3300  0  0   4095  2000  AI  @P 4
 HR_INT  1 3500  0  0   4095  1200  AO  @B 4
 HR_INT  1 3501  0  0   4095  1200  AO  @K 4
 DO_REG  2 5000  0  0      1     0  DO  @V 2
 DO_REG  4 5002  0  0      1     0  DO  @P 2
-IN_REG  2 3301  0  0   4095  2000  AI  @S 4
+IN_REG  2 3301  0  0   4095  2000  AI  @S 4
